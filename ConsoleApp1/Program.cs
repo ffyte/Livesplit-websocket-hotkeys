@@ -3,15 +3,18 @@
 using Websocket.Client;
 using System.Runtime.InteropServices;
 
-
 internal class Program
 {
+    public static ConsoleKeyInfo startorsplit = new();
+    public static ConsoleKeyInfo reset = new();
+    public static ConsoleKeyInfo unsplit = new();
+    public static string message = "empty";
+    public static bool newmessage = false;
     private static void Main()
     {
         //startup and setting saving
-        ConsoleKeyInfo startorsplit = new();
-        ConsoleKeyInfo reset = new();
-        ConsoleKeyInfo unsplit = new();
+        
+        
         string ip = "127.0.0.1:16835";
         
 
@@ -101,11 +104,11 @@ internal class Program
         //set Global hotkeys
 
         Console.WriteLine("registering keys");
-        WinInterop.RegisterHotKey(IntPtr.Zero, 0, (int)startorsplit.Modifiers +0x4000, (uint) startorsplit.Key);
-        WinInterop.RegisterHotKey(IntPtr.Zero, 1, (int)reset.Modifiers + 0x4000, (uint) reset.Key);
-        WinInterop.RegisterHotKey(IntPtr.Zero, 2, (int)unsplit.Modifiers + 0x4000, (uint) unsplit.Key);
+        //WinInterop.RegisterHotKey(IntPtr.Zero, 0, (int)startorsplit.Modifiers +0x4000, (uint) startorsplit.Key);
+        //WinInterop.RegisterHotKey(IntPtr.Zero, 1, (int)reset.Modifiers + 0x4000, (uint) reset.Key);
+        //WinInterop.RegisterHotKey(IntPtr.Zero, 2, (int)unsplit.Modifiers + 0x4000, (uint) unsplit.Key);
 
-
+        
         //Communication to server
         var url = new Uri("ws://" + ip + "/livesplit");
         using var client = new WebsocketClient(url);
@@ -117,27 +120,40 @@ internal class Program
             Console.WriteLine("Couldn't connect to server?");
             //System.Environment.Exit(1); 
         }
-
-        Console.WriteLine("Connected to: " + url);
         
+        Console.WriteLine("Connected to: " + url);
 
-        bool abortpressed=false;
+        IntPtr hook = WinInterop.SetWindowsHookEx(13, WinInterop.HookCallback, IntPtr.Zero, 0);
+
+        bool abortpressed =false;
         Console.CancelKeyPress += delegate(object? sender, ConsoleCancelEventArgs e) {
             // call methods to clean up
             Console.WriteLine("exiting...");
             abortpressed = true;
-            WinInterop.UnregisterHotKey(IntPtr.Zero, 0);
-            WinInterop.UnregisterHotKey(IntPtr.Zero, 1);
-            WinInterop.UnregisterHotKey(IntPtr.Zero, 2);
+            //WinInterop.UnregisterHotKey(IntPtr.Zero, 0);
+            //WinInterop.UnregisterHotKey(IntPtr.Zero, 1);
+            //WinInterop.UnregisterHotKey(IntPtr.Zero, 2);
+            WinInterop.UnhookWindowsHookEx(hook);
             System.Environment.Exit(0);
         };
         Console.WriteLine("ctrl+c to exit");
 
+        
+  
+
+  
         //main loop
-        string message = "startorsplit";
+        
         while (!abortpressed)
         {
-
+        
+                if (Program.newmessage)
+                {
+                    Console.WriteLine(Program.message);
+                    client.Send(Program.message);
+                    Program.newmessage = false;
+                }
+            /* comment out
             
             if (WinInterop.GetMessageW(out WinInterop.Message msg, IntPtr.Zero, 0, 0, 1))
             {
@@ -160,7 +176,7 @@ internal class Program
                     Console.WriteLine(message);
                     client.Send(message);
                 }
-            }
+            }*/
         }
     }
 
@@ -171,7 +187,46 @@ internal class Program
 static partial class WinInterop
 {
 
+    const int WH_KEYBOARD_LL = 13;
+    const int WM_KEYDOWN = 0x0100;
+    const int WM_KEYUP = 0x0101;
+
+    public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+    public static event Action<Keys, bool> KeyAction;
+    public static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        if (nCode >= 0 && (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_KEYUP))
+        {
+            int vkCode = Marshal.ReadInt32(lParam);
+            ConsoleKeyInfo keyInfo = new ((char)0, (ConsoleKey)vkCode, false, false, false);
+            Console.WriteLine(wParam);
+            if (wParam == (IntPtr)WM_KEYDOWN)
+            {
+                Console.WriteLine("Key pressed: " + keyInfo.Key);
+                if (keyInfo.Key == Program.startorsplit.Key)
+                {
+                    Program.message = "startorsplit";
+                    Program.newmessage = true;
+                }
+                else if (keyInfo.Key == Program.reset.Key) {
+                    Program.message = "reset";
+                    Program.newmessage = true;
+                }
+                else if (keyInfo.Key == Program.unsplit.Key)
+                {
+                    Program.message = "unsplit";
+                    Program.newmessage = true;
+                }
+                
+            }
+        }
+
+        return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+       
+    }
+
     public const int WM_HOTKEY = 0x312;
+    
     [LibraryImport("user32")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool RegisterHotKey(
@@ -200,4 +255,15 @@ static partial class WinInterop
         public IntPtr LParam;
         public uint Time;
     }
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
 }
