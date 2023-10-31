@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "dgSpecHash": "Jt8KzqwvbPdgaOpJ50paLfpLBm3QpA+tl0yhzTBjsKiwWJ0CQul4mlE1Ma1yCnL7k+0GWHVYPG8hKyBlbfiqWw==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\esgard\\source\\repos\\Livesplit-websocket-hotkeys\\ConsoleApp1\\ConsoleApp1.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\esgard\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\7.0.1\\microsoft.extensions.logging.abstractions.7.0.1.nupkg.sha512",
+    "C:\\Users\\esgard\\.nuget\\packages\\noninvasivekeyboardhooklibrary.core\\2.1.0\\noninvasivekeyboardhooklibrary.core.2.1.0.nupkg.sha512",
+    "C:\\Users\\esgard\\.nuget\\packages\\system.reactive\\6.0.0\\system.reactive.6.0.0.nupkg.sha512",
+    "C:\\Users\\esgard\\.nuget\\packages\\system.threading.channels\\7.0.0\\system.threading.channels.7.0.0.nupkg.sha512",
+    "C:\\Users\\esgard\\.nuget\\packages\\websocket.client\\5.0.0\\websocket.client.5.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
