@@ -1,9 +1,8 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using NonInvasiveKeyboardHookLibrary;
-using System.Net;
-using System.Net.Sockets;
-using System.Net.WebSockets;
+
 using Websocket.Client;
+using System.Runtime.InteropServices;
+
 
 internal class Program
 {
@@ -11,11 +10,10 @@ internal class Program
     {
         //startup and setting saving
         ConsoleKeyInfo startorsplit = new();
-        ConsoleKeyInfo reset =new();
-        ConsoleKeyInfo unsplit =new();
-        string ip="127.0.0.1:16835";
-        bool newmessage = false;
-        string message="startorsplit";
+        ConsoleKeyInfo reset = new();
+        ConsoleKeyInfo unsplit = new();
+        string ip = "127.0.0.1:16835";
+        
 
         Console.WriteLine("press Y to delete settings?");
         if (Console.ReadKey().KeyChar == 'Y')
@@ -23,7 +21,7 @@ internal class Program
             File.Delete("settings.txt");
         }
         Console.WriteLine("");
-        
+
         if (File.Exists("settings.txt"))
         {
 
@@ -72,7 +70,7 @@ internal class Program
                 unsplit = new ConsoleKeyInfo(key, (ConsoleKey)key, shiftmod, altmod, controlmod);
                 Console.WriteLine("unsplit: " + unsplit.Key.ToString() + " " + unsplit.KeyChar.GetHashCode());
             }
-
+            inputfile.Close();
 
 
 
@@ -101,63 +99,105 @@ internal class Program
         }
 
         //set Global hotkeys
-        var keyboardHookManager = new KeyboardHookManager();
-        keyboardHookManager.Start();
-        Console.WriteLine("registering keys");
-         keyboardHookManager.RegisterHotkey(0x4A, () =>
-        {
-            Console.WriteLine("start or split");
-            newmessage = true;
-            message = "startorsplit";
-        });
-        
-        keyboardHookManager.RegisterHotkey(0x62, () =>
-        {
-            Console.WriteLine("reset");
-            newmessage = true;
-            message = "reset";
-        });
-        keyboardHookManager.RegisterHotkey(0x63, () =>
-        {
-            Console.WriteLine("unsplit");
-            newmessage= true;
-            message = "unsplit";
-        });
-        keyboardHookManager.RegisterHotkey(0x60, () =>
-        {
-            Console.WriteLine("NumPad0 detected");
-            newmessage = true;
-            message = "startorsplit";
-        });
 
-        //Console.ReadKey();
+        Console.WriteLine("registering keys");
+        WinInterop.RegisterHotKey(IntPtr.Zero, 0, (int)startorsplit.Modifiers +0x4000, (uint) startorsplit.Key);
+        WinInterop.RegisterHotKey(IntPtr.Zero, 1, (int)reset.Modifiers + 0x4000, (uint) reset.Key);
+        WinInterop.RegisterHotKey(IntPtr.Zero, 2, (int)unsplit.Modifiers + 0x4000, (uint) unsplit.Key);
 
 
         //Communication to server
         var url = new Uri("ws://" + ip + "/livesplit");
         using var client = new WebsocketClient(url);
-        Console.WriteLine("Connected to: " + url);
-        client.Start();
-        
-        client.Send("startorsplit");
 
-        Console.CancelKeyPress += delegate {
+        client.Start();
+
+        if (!client.IsRunning)
+        {
+            Console.WriteLine("Couldn't connect to server?");
+            //System.Environment.Exit(1); 
+        }
+
+        Console.WriteLine("Connected to: " + url);
+        
+
+        bool abortpressed=false;
+        Console.CancelKeyPress += delegate(object? sender, ConsoleCancelEventArgs e) {
             // call methods to clean up
-            client.Dispose();
+            Console.WriteLine("exiting...");
+            abortpressed = true;
+            WinInterop.UnregisterHotKey(IntPtr.Zero, 0);
+            WinInterop.UnregisterHotKey(IntPtr.Zero, 1);
+            WinInterop.UnregisterHotKey(IntPtr.Zero, 2);
+            System.Environment.Exit(0);
         };
         Console.WriteLine("ctrl+c to exit");
+
         //main loop
-        while (true)
+        string message = "startorsplit";
+        while (!abortpressed)
         {
-            if (newmessage)
+
+            
+            if (WinInterop.GetMessageW(out WinInterop.Message msg, IntPtr.Zero, 0, 0, 1))
             {
-                Console.WriteLine(message);
-                client.Send(message);
+                Console.WriteLine(msg.Msg);
+                if (msg.Msg == WinInterop.WM_HOTKEY)
+                {
+                    var param = msg.WParam.ToInt32();
+                    if (param == 0)
+                    {
+                        message = "startorsplit";
+                    }
+                    else if (param == 1)
+                    {
+                        message = "reset";
+                    }
+                    else if (param == 2)
+                    {
+                        message = "unsplit";
+                    }
+                    Console.WriteLine(message);
+                    client.Send(message);
+                }
             }
         }
     }
 
-
 }
 
 
+
+static partial class WinInterop
+{
+
+    public const int WM_HOTKEY = 0x312;
+    [LibraryImport("user32")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool RegisterHotKey(
+        IntPtr hWnd,
+        int id,
+        int fsModifiers,
+        uint vk
+        );
+    [LibraryImport("user32")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetMessageW(
+        out Message msg,
+        IntPtr hWnd,
+        uint wMsgFilterMin,
+        uint wMsgFilterMax,
+        uint remove
+        );
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs (UnmanagedType.Bool)]
+    public static partial bool UnregisterHotKey(IntPtr hWnd, int id);
+    public struct Message
+    {
+        public IntPtr HWnd;
+        public uint Msg;
+        public IntPtr WParam;
+        public IntPtr LParam;
+        public uint Time;
+    }
+}
