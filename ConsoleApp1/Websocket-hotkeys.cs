@@ -4,28 +4,37 @@ using Websocket.Client;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using static WinInterop;
+using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
 
 internal class Program
 {
     public static ConsoleKeyInfo startorsplit = new();
     public static ConsoleKeyInfo reset = new();
     public static ConsoleKeyInfo unsplit = new();
+    public static ConsoleKeyInfo skipsplit = new();
+    public static ConsoleKeyInfo pause = new();
     public static string message = "empty";
     public static bool newmessage = false;
+    
     private static void Main()
     {
         //startup and setting saving
-        
-        
+
+        bool paused = false;
         string ip = "127.0.0.1:16835";
 
-        bool fallback = true;
-        Console.WriteLine("press Y to delete settings?");
-        if (Console.ReadKey().KeyChar == 'Y')
+        bool fallback = false;
+        if (File.Exists("settings.txt"))
         {
-            File.Delete("settings.txt");
+            Console.WriteLine("press Y to delete settings?");
+            if (Console.ReadKey().KeyChar == 'Y')
+            {
+                File.Delete("settings.txt");
+            }
+            Console.WriteLine("");
         }
-        Console.WriteLine("");
+        
 
         if (File.Exists("settings.txt"))
         {
@@ -75,6 +84,30 @@ internal class Program
                 unsplit = new ConsoleKeyInfo(key, (ConsoleKey)key, shiftmod, altmod, controlmod);
                 Console.WriteLine("unsplit: " + unsplit.Key.ToString() + " " + unsplit.KeyChar.GetHashCode());
             }
+            altmod = shiftmod = controlmod = false;
+            inputstring = inputfile.ReadLine();
+            //Console.WriteLine(inputstring);
+            if (inputstring != null)
+            {
+                if (inputstring.Contains("alt")) { altmod = true; }
+                if (inputstring.Contains("shift")) { shiftmod = true; }
+                if (inputstring.Contains("ctrl")) { controlmod = true; }
+                key = char.Parse(inputstring.Split(' ').FirstOrDefault());
+                pause = new ConsoleKeyInfo(key, (ConsoleKey)key, shiftmod, altmod, controlmod);
+                Console.WriteLine("pause: " + pause.Key.ToString() + " " + pause.KeyChar.GetHashCode());
+            }
+            altmod = shiftmod = controlmod = false;
+            inputstring = inputfile.ReadLine();
+            //Console.WriteLine(inputstring);
+            if (inputstring != null)
+            {
+                if (inputstring.Contains("alt")) { altmod = true; }
+                if (inputstring.Contains("shift")) { shiftmod = true; }
+                if (inputstring.Contains("ctrl")) { controlmod = true; }
+                key = char.Parse(inputstring.Split(' ').FirstOrDefault());
+                skipsplit = new ConsoleKeyInfo(key, (ConsoleKey)key, shiftmod, altmod, controlmod);
+                Console.WriteLine("skipsplit: " + skipsplit.Key.ToString() + " " + skipsplit.KeyChar.GetHashCode());
+            }
             inputfile.Close();
 
 
@@ -93,6 +126,13 @@ internal class Program
             Console.WriteLine();
             Console.WriteLine("undo split key");
             unsplit = Console.ReadKey();
+            Console.WriteLine();
+            Console.WriteLine("pause key");
+            pause = Console.ReadKey();
+            Console.WriteLine();
+            Console.WriteLine("skip split key");
+            skipsplit = Console.ReadKey();
+
 
             var outputfile = new StreamWriter("settings.txt");
             if (ip != null) outputfile.WriteLine(ip.ToString());
@@ -100,6 +140,8 @@ internal class Program
             outputfile.WriteLine((char)startorsplit.Key + " " + startorsplit.Modifiers.ToString());
             outputfile.WriteLine((char)reset.Key + " " + reset.Modifiers.ToString());
             outputfile.WriteLine((char)unsplit.Key + " " + unsplit.Modifiers.ToString());
+            outputfile.WriteLine((char)pause.Key + " " + pause.Modifiers.ToString());
+            outputfile.WriteLine((char)skipsplit.Key + " " + skipsplit.Modifiers.ToString());
             outputfile.Close();
         }
 
@@ -108,9 +150,12 @@ internal class Program
         Console.WriteLine("registering keys");
         if (fallback)
         {
-            /*WinInterop.RegisterHotKey(IntPtr.Zero, 0, (int)startorsplit.Modifiers +0x4000, (uint) startorsplit.Key);/*
+            Console.WriteLine("Fallback blocking keys active");
+            WinInterop.RegisterHotKey(IntPtr.Zero, 0, (int)startorsplit.Modifiers +0x4000, (uint) startorsplit.Key);
             WinInterop.RegisterHotKey(IntPtr.Zero, 1, (int)reset.Modifiers + 0x4000, (uint) reset.Key);
-            WinInterop.RegisterHotKey(IntPtr.Zero, 2, (int)unsplit.Modifiers + 0x4000, (uint) unsplit.Key);*/
+            WinInterop.RegisterHotKey(IntPtr.Zero, 2, (int)unsplit.Modifiers + 0x4000, (uint) unsplit.Key);
+            WinInterop.RegisterHotKey(IntPtr.Zero, 3, (int)pause.Modifiers + 0x4000, (uint) pause.Key);
+            WinInterop.RegisterHotKey(IntPtr.Zero, 4, (int)skipsplit.Modifiers + 0x4000, (uint)skipsplit.Key);
         }
         
         //Communication to server
@@ -136,32 +181,37 @@ internal class Program
             abortpressed = true;
             if (fallback)
             {
-                /*WinInterop.UnregisterHotKey(IntPtr.Zero, 0);
-                //WinInterop.UnregisterHotKey(IntPtr.Zero, 1);
-                WinInterop.UnregisterHotKey(IntPtr.Zero, 2);*/
+                WinInterop.UnregisterHotKey(IntPtr.Zero, 0);
+                WinInterop.UnregisterHotKey(IntPtr.Zero, 1);
+                WinInterop.UnregisterHotKey(IntPtr.Zero, 2);
+                WinInterop.UnregisterHotKey(IntPtr.Zero, 3);
+                WinInterop.UnregisterHotKey(IntPtr.Zero, 4);
             }
             WinInterop.UnhookWindowsHookEx(hook);
             System.Environment.Exit(0);
         };
 
-        
+
 
 
         //main loop
 
-        hook = WinInterop.SetWindowsHookEx(WH_KEYBOARD_LL, WinInterop.HookCallback, IntPtr.Zero, 0);
+        hook = WinInterop.SetWindowsHookEx(WH_KEYBOARD_LL, WinInterop.HookCallback, GetModuleHandleA(Process.GetCurrentProcess().MainModule.ModuleName), 0);
         if (hook == IntPtr.Zero)
         {
             Console.WriteLine("Failed to hook");
             return;
         }
         Program.message = "startorsplit";
+
+       
+        
+        //WinInterop.Message msg = new();
         Console.WriteLine("ctrl+c to exit");
-        //WinInterop.GetMessageW(out WinInterop.Message msg, IntPtr.Zero, 0, 0, 1);
-        WinInterop.Message msg = new();
         while ( !abortpressed)
         {
-            //Console.WriteLine(msg);
+            WinInterop.PeekMessageA(out WinInterop.Message msg, IntPtr.Zero, 0, 0, 1);
+            //Console.WriteLine(msg);u
             /*if (hook == IntPtr.Zero)
             {
                 Console.WriteLine("Failed to hook");
@@ -169,8 +219,11 @@ internal class Program
             }*/
             if (Program.newmessage)
             {
+
+                if (paused) { Program.message = "resume";paused=false;}
                 Console.WriteLine(Program.message);
                 client.Send(Program.message);
+                if(Program.message == "pause") { paused = true; }
                 Program.newmessage = false;
                 }
             //Console.WriteLine(Program.newmessage);
@@ -201,6 +254,14 @@ internal class Program
                         {
                             message = "unsplit";
                         }
+                        else if (param == 3)
+                        {
+                            message = "pause";
+                        }
+                        else if (param == 4)
+                        {
+                            message = "skipsplit";
+                        }
                         Console.WriteLine(message);
                         client.Send(message);
                     }
@@ -223,7 +284,7 @@ static partial class WinInterop
     const int WM_KEYDOWN = 0x0100;
     const int WM_KEYUP = 0x0101;
 
-    private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+    public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
     public static event Action<Keys, bool> KeyAction;
 
 
@@ -265,32 +326,41 @@ static partial class WinInterop
            
             int vkCode = Marshal.ReadInt32(lParam);
             ConsoleKeyInfo keyInfo = new((char)0, (ConsoleKey)vkCode, false, false, false);
-            if (wParam == (IntPtr)WM_KEYDOWN)
+            if (wParam == (IntPtr)WM_KEYUP)
             {
-                Console.WriteLine("Key pressed: " + keyInfo.Key);
+                //Console.WriteLine("Key pressed: " + keyInfo.Key);
                 
                 if (keyInfo.Key == Program.startorsplit.Key)
                 {
                     
                     Program.message = "startorsplit";
                     Program.newmessage = true;
-                    Console.WriteLine(Program.startorsplit.Key + Program.message);
+                    //Console.WriteLine(Program.startorsplit.Key + Program.message);
                 }
                 else if (keyInfo.Key == Program.reset.Key)
                 {
                     
                     Program.message = "reset";
                     Program.newmessage = true;
-                    Console.WriteLine(Program.reset.Key+Program.message);
+                    //Console.WriteLine(Program.reset.Key+Program.message);
                 }
                 else if (keyInfo.Key == Program.unsplit.Key)
                 {
                     
                     Program.message = "unsplit";
                     Program.newmessage = true;
-                    Console.WriteLine(Program.unsplit.Key + Program.message);
+                    //Console.WriteLine(Program.unsplit.Key + Program.message);
                 }
-
+                else if (keyInfo.Key == Program.pause.Key) 
+                {
+                    Program.message = "pause";
+                    Program.newmessage = true;
+                }
+                else if (keyInfo.Key == Program.skipsplit.Key)
+                {
+                    Program.message = "skipsplit";
+                    Program.newmessage = true;
+                }
             }
         }
 
@@ -301,11 +371,16 @@ static partial class WinInterop
     [LibraryImport("user32.dll", EntryPoint = "SetWindowsHookExW", SetLastError = true)]
     public static partial IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
 
-    [LibraryImport("user32.dll", EntryPoint = "UnhookWindowsHookExW", SetLastError = true)]
+    [LibraryImport("user32.dll", EntryPoint = "UnhookWindowsHookEx", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool UnhookWindowsHookEx(IntPtr hhk);
 
     [LibraryImport("user32.dll", EntryPoint = "CallNextHookEx", SetLastError = true)]
     public static partial IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
+    [LibraryImport("kernel32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+    public static partial IntPtr GetModuleHandleA(string lpModuleName);
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool PeekMessageA(out Message msg, IntPtr hWnd, uint filterMin, uint filterMax, uint remove);
 }
