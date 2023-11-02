@@ -10,6 +10,7 @@ This requires .net 6 runtime to work properly (for win7 compatibility).
 
 //FFyte
 
+Thanks to Ero & Cryze
 
 Advanced:
 There's a fallback in the source for blocking hotkeys, if you want to look at that.
