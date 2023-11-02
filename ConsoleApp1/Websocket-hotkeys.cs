@@ -2,10 +2,10 @@
 
 using Websocket.Client;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 using static WinInterop;
 using System.Diagnostics;
-using System.Security.Cryptography.X509Certificates;
+using System.ComponentModel.DataAnnotations;
+
 
 internal class Program
 {
@@ -196,7 +196,7 @@ internal class Program
 
         //main loop
 
-        hook = WinInterop.SetWindowsHookEx(WH_KEYBOARD_LL, WinInterop.HookCallback, GetModuleHandleA(Process.GetCurrentProcess().MainModule.ModuleName), 0);
+        hook = WinInterop.SetWindowsHookEx(WH_KEYBOARD_LL, WinInterop.HookCallback, IntPtr.Zero, 0);
         if (hook == IntPtr.Zero)
         {
             Console.WriteLine("Failed to hook");
@@ -289,27 +289,23 @@ static partial class WinInterop
 
 
     public const int WM_HOTKEY = 0x312;
-    
-    [LibraryImport("user32")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool RegisterHotKey(
+    [DllImport("user32.dll")]
+    public static extern bool RegisterHotKey(
         IntPtr hWnd,
         int id,
         int fsModifiers,
         uint vk
         );
-    [LibraryImport("user32")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool GetMessageW(
+    [DllImport("user32.dll")]
+    public static extern bool GetMessageW(
         out Message msg,
         IntPtr hWnd,
         uint wMsgFilterMin,
         uint wMsgFilterMax,
         uint remove
         );
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs (UnmanagedType.Bool)]
-    public static partial bool UnregisterHotKey(IntPtr hWnd, int id);
+    [DllImport("user32.dll")]
+    public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     public struct Message
     {
         public IntPtr HWnd;
@@ -368,19 +364,18 @@ static partial class WinInterop
 
     }
 
-    [LibraryImport("user32.dll", EntryPoint = "SetWindowsHookExW", SetLastError = true)]
-    public static partial IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+    [DllImport("user32.dll")]
+    public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
 
-    [LibraryImport("user32.dll", EntryPoint = "UnhookWindowsHookEx", SetLastError = true)]
+    [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool UnhookWindowsHookEx(IntPtr hhk);
+    public static extern bool UnhookWindowsHookEx(IntPtr hhk);
 
-    [LibraryImport("user32.dll", EntryPoint = "CallNextHookEx", SetLastError = true)]
-    public static partial IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")]
+    public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
-    [LibraryImport("kernel32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-    public static partial IntPtr GetModuleHandleA(string lpModuleName);
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool PeekMessageA(out Message msg, IntPtr hWnd, uint filterMin, uint filterMax, uint remove);
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetModuleHandle(string lpModuleName);
+    [DllImport("user32.dll")]
+    public static extern bool PeekMessageA(out Message msg, IntPtr hWnd, uint filterMin, uint filterMax, uint remove);
 }
