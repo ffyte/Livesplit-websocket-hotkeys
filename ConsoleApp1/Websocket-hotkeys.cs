@@ -1,10 +1,7 @@
-﻿// See https://aka.ms/new-console-template for more information
-
+﻿
 using Websocket.Client;
 using System.Runtime.InteropServices;
-using static WinInterop;
-using System.Diagnostics;
-using System.ComponentModel.DataAnnotations;
+
 
 
 internal class Program
@@ -196,7 +193,7 @@ internal class Program
 
         //main loop
 
-        hook = WinInterop.SetWindowsHookEx(WH_KEYBOARD_LL, WinInterop.HookCallback, IntPtr.Zero, 0);
+        hook = WinInterop.SetWindowsHookEx(13, WinInterop.HookCallback, IntPtr.Zero, 0);
         if (hook == IntPtr.Zero)
         {
             Console.WriteLine("Failed to hook");
@@ -268,7 +265,7 @@ internal class Program
                 
             }
         }
-        UnhookWindowsHookEx(hook);
+        WinInterop.UnhookWindowsHookEx(hook);
         
     }
 

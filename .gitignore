@@ -44,3 +44,4 @@
 /.vs
 /ConsoleApp1/bin/Release/net6.0-windows
 /ConsoleApp1/obj/Release/net6.0-windows
+/ConsoleApp1/obj
