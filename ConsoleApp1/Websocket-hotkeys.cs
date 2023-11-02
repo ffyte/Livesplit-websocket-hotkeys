@@ -17,11 +17,15 @@ internal class Program
     private static void Main()
     {
         //startup and setting saving
-
+        //for resume state
         bool paused = false;
         string ip = "127.0.0.1:16835";
+        IntPtr hook = IntPtr.Zero;
 
+        //for blocking hotkeys
         bool fallback = false;
+
+
         if (File.Exists("settings.txt"))
         {
             Console.WriteLine("press Y to delete settings?");
@@ -140,10 +144,11 @@ internal class Program
             outputfile.WriteLine((char)pause.Key + " " + pause.Modifiers.ToString());
             outputfile.WriteLine((char)skipsplit.Key + " " + skipsplit.Modifiers.ToString());
             outputfile.Close();
+            Console.WriteLine("");
         }
 
         //set Global hotkeys
-
+        
         Console.WriteLine("registering keys");
         if (fallback)
         {
@@ -153,6 +158,14 @@ internal class Program
             WinInterop.RegisterHotKey(IntPtr.Zero, 2, (int)unsplit.Modifiers + 0x4000, (uint) unsplit.Key);
             WinInterop.RegisterHotKey(IntPtr.Zero, 3, (int)pause.Modifiers + 0x4000, (uint) pause.Key);
             WinInterop.RegisterHotKey(IntPtr.Zero, 4, (int)skipsplit.Modifiers + 0x4000, (uint)skipsplit.Key);
+        } else
+        {
+            hook = WinInterop.SetWindowsHookEx(13, WinInterop.HookCallback, IntPtr.Zero, 0);
+            if (hook == IntPtr.Zero)
+            {
+                Console.WriteLine("Failed to hook");
+                return;
+            }
         }
         
         //Communication to server
@@ -160,18 +173,18 @@ internal class Program
         using var client = new WebsocketClient(url);
 
         client.Start();
-
+        /*This doesn't do anything
         if (!client.IsRunning)
         {
             Console.WriteLine("Couldn't connect to server?");
             //System.Environment.Exit(1); 
-        }
+        }*/
         
         Console.WriteLine("Connected to: " + url);
 
 
         bool abortpressed =false;
-        IntPtr hook = IntPtr.Zero;
+        
         Console.CancelKeyPress += delegate(object? sender, ConsoleCancelEventArgs e) {
             // call methods to clean up
             Console.WriteLine("exiting...");
@@ -193,21 +206,16 @@ internal class Program
 
         //main loop
 
-        hook = WinInterop.SetWindowsHookEx(13, WinInterop.HookCallback, IntPtr.Zero, 0);
-        if (hook == IntPtr.Zero)
-        {
-            Console.WriteLine("Failed to hook");
-            return;
-        }
+        
         Program.message = "startorsplit";
 
        
         
-        //WinInterop.Message msg = new();
+        WinInterop.Message msg = new();
         Console.WriteLine("ctrl+c to exit");
         while ( !abortpressed)
         {
-            WinInterop.PeekMessageA(out WinInterop.Message msg, IntPtr.Zero, 0, 0, 1);
+            if (!fallback) { WinInterop.PeekMessageA(out msg, IntPtr.Zero, 0, 0, 1); }
             //Console.WriteLine(msg);u
             /*if (hook == IntPtr.Zero)
             {
@@ -228,14 +236,8 @@ internal class Program
             {
 
 
-               
-                    if (Program.newmessage)
-                    {
-                        Console.WriteLine(Program.message);
-                        client.Send(Program.message);
-                        Program.newmessage = false;
-                    }
-                    //Console.WriteLine(msg.Msg);
+
+                WinInterop.GetMessageW(out msg, IntPtr.Zero, 0, 0, 1);     
                     if (msg.Msg == WinInterop.WM_HOTKEY)
                     {
                         var param = msg.WParam.ToInt32();
@@ -253,8 +255,12 @@ internal class Program
                         }
                         else if (param == 3)
                         {
-                            message = "pause";
-                        }
+                        message = "pause";
+                        
+                        if (paused) message = "resume"; paused = false;
+                        if (message == "pause") paused = true;    
+                            
+                    }
                         else if (param == 4)
                         {
                             message = "skipsplit";
@@ -282,7 +288,7 @@ static partial class WinInterop
     const int WM_KEYUP = 0x0101;
 
     public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
-    public static event Action<Keys, bool> KeyAction;
+    //public static event Action<Keys, bool> KeyAction;
 
 
     public const int WM_HOTKEY = 0x312;
@@ -371,8 +377,6 @@ static partial class WinInterop
     [DllImport("user32.dll")]
     public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
-    [DllImport("user32.dll")]
-    public static extern IntPtr GetModuleHandle(string lpModuleName);
     [DllImport("user32.dll")]
     public static extern bool PeekMessageA(out Message msg, IntPtr hWnd, uint filterMin, uint filterMax, uint remove);
 }
