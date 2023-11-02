@@ -3,14 +3,10 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0-windows</TargetFramework>
+    <RootNamespace>KB_Hook_Test</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
-	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
-  <UseWindowsForms>true</UseWindowsForms>
+	<UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Websocket.Client" Version="5.0.0" />
-  </ItemGroup>
 
 </Project>
