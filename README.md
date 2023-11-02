@@ -6,7 +6,7 @@ You need to add the websocket component to the layout and use control->Star Serv
 
 Setup and logic should be easy in-software.
 
-This requires .net 6 runtime to work properly.
+This requires .net 6 runtime to work properly (for win7 compatibility).
 
 //FFyte
 
