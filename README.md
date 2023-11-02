@@ -4,7 +4,7 @@ It implements startorsplit, reset, unsplit, skip split and pause/resume via a gl
 
 You need to add the websocket component to the layout and use control->Star Server (WS) in livesplit on the server.
 
-Setup and logic should be easy in-software.
+Setup and logic should be easy in-software. It uses a (text) settings file to save your preferences.
 
 This requires .net 6 runtime to work properly (for win7 compatibility).
 
