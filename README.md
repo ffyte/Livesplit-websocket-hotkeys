@@ -14,3 +14,6 @@ Thanks to Ero & Cryze
 
 Advanced:
 There's a fallback in the source for blocking hotkeys, if you want to look at that.
+Requires Websocket.Client nuget-package
+
+Non-blocking hotkeys might not be able to use modifiers (shift, alt, ctrl) 
