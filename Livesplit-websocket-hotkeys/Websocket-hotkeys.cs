@@ -1,8 +1,7 @@
 ﻿
 using Websocket.Client;
 using System.Runtime.InteropServices;
-
-
+using System.Diagnostics;
 
 internal class Program
 {
@@ -24,7 +23,7 @@ internal class Program
 
         //for blocking hotkeys
         bool fallback = false;
-
+        if (File.Exists("fallback")) fallback = true;
 
         if (File.Exists("settings.txt"))
         {
@@ -209,7 +208,7 @@ internal class Program
         
         Program.message = "startorsplit";
 
-       
+        Stopwatch stopwatch = new Stopwatch();
         
         WinInterop.Message msg = new();
         Console.WriteLine("ctrl+c to exit");
@@ -222,7 +221,8 @@ internal class Program
                 Console.WriteLine("Failed to hook");
                 hook = WinInterop.SetWindowsHookEx(WH_KEYBOARD_LL, WinInterop.HookCallback, 0, 0);
             }*/
-            if (Program.newmessage)
+            if (stopwatch.ElapsedMilliseconds >= 300) stopwatch.Stop();
+            if (Program.newmessage && !stopwatch.IsRunning)
             {
 
                 if (paused) { Program.message = "resume";paused=false;}
@@ -230,6 +230,8 @@ internal class Program
                 client.Send(Program.message);
                 if(Program.message == "pause") { paused = true; }
                 Program.newmessage = false;
+                stopwatch.Reset();
+                stopwatch.Start();
                 }
             //Console.WriteLine(Program.newmessage);
             if (fallback)
@@ -267,6 +269,7 @@ internal class Program
                         }
                         Console.WriteLine(message);
                         client.Send(message);
+                        stopwatch.Start();
                     }
                 
             }
