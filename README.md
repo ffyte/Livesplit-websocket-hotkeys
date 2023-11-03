@@ -13,7 +13,9 @@ This requires .net 6 runtime to work properly (for win7 compatibility).
 Thanks to Ero, Cryze & Wolsk 
 
 Advanced:
+
 There's a fallback in the source for blocking hotkeys, if you want to look at that.
+
 Requires Websocket.Client nuget-package
 
 Non-blocking hotkeys might work with modifiers (shift, alt, ctrl) 
