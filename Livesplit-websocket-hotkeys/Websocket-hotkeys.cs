@@ -23,7 +23,11 @@ internal class Program
 
         //for blocking hotkeys
         bool fallback = false;
-        if (File.Exists("fallback")) fallback = true;
+        if (File.Exists("fallback"))
+        {
+            fallback = true;
+            Console.WriteLine("Using blocking hotkeys");
+        }
 
         if (File.Exists("settings.txt"))
         {
@@ -48,7 +52,7 @@ internal class Program
             ip = inputfile.ReadLine();
             Console.WriteLine("ip set: " + ip);
             string inputstring = inputfile.ReadLine();
-            //Console.WriteLine(inputstring);
+            
             if (inputstring != null)
             {
                 if (inputstring.Contains("alt")) { altmod = true; }
@@ -61,7 +65,7 @@ internal class Program
             }
             altmod = shiftmod = controlmod = false;
             inputstring = inputfile.ReadLine();
-            //Console.WriteLine(inputstring);
+            
             if (inputstring != null)
             {
                 if (inputstring.Contains("alt")) { altmod = true; }
@@ -74,7 +78,7 @@ internal class Program
             }
             altmod = shiftmod = controlmod = false;
             inputstring = inputfile.ReadLine();
-            //Console.WriteLine(inputstring);
+            
             if (inputstring != null)
             {
                 if (inputstring.Contains("alt")) { altmod = true; }
@@ -86,7 +90,7 @@ internal class Program
             }
             altmod = shiftmod = controlmod = false;
             inputstring = inputfile.ReadLine();
-            //Console.WriteLine(inputstring);
+            
             if (inputstring != null)
             {
                 if (inputstring.Contains("alt")) { altmod = true; }
@@ -98,7 +102,7 @@ internal class Program
             }
             altmod = shiftmod = controlmod = false;
             inputstring = inputfile.ReadLine();
-            //Console.WriteLine(inputstring);
+            
             if (inputstring != null)
             {
                 if (inputstring.Contains("alt")) { altmod = true; }
@@ -172,12 +176,7 @@ internal class Program
         using var client = new WebsocketClient(url);
 
         client.Start();
-        /*This doesn't do anything
-        if (!client.IsRunning)
-        {
-            Console.WriteLine("Couldn't connect to server?");
-            //System.Environment.Exit(1); 
-        }*/
+
         
         Console.WriteLine("Connected to: " + url);
 
@@ -216,27 +215,26 @@ internal class Program
         while ( !abortpressed)
         {
             if (!fallback) { WinInterop.PeekMessageA(out msg, IntPtr.Zero, 0, 0, 1); }
-            //Console.WriteLine(msg);u
-            /*if (hook == IntPtr.Zero)
-            {
-                Console.WriteLine("Failed to hook");
-                hook = WinInterop.SetWindowsHookEx(WH_KEYBOARD_LL, WinInterop.HookCallback, 0, 0);
-            }*/
-            if (newmessage && message == "startorsplit" && stopwatch.ElapsedMilliseconds < 300 && stopwatch.IsRunning)
+            
+            //prevent extra keypresses for non-blocking, don't know how to do it for blocking
+            if ((newmessage && message == "startorsplit") && stopwatch.ElapsedMilliseconds < 300 && stopwatch.IsRunning)
             {
                 newmessage=false;
                 
             }
             
+            
+
             if (stopwatch.ElapsedMilliseconds >= 300)
             {
                 stopwatch.Reset();
             }
-            
 
+            
 
             if (newmessage && !stopwatch.IsRunning)
             {
+                
                 if (paused) { message = "resume";paused=false;}
                 Console.WriteLine(message);
                 client.Send(message);
@@ -245,14 +243,16 @@ internal class Program
                 
                 if (message== "startorsplit") stopwatch.Start();
                 }
-            //Console.WriteLine(Program.newmessage);
-            if (fallback)
+            
+            if (fallback && !stopwatch.IsRunning)
             {
 
 
+                WinInterop.GetMessageW(out msg, IntPtr.Zero, 0, 0, 1);
 
-                WinInterop.GetMessageW(out msg, IntPtr.Zero, 0, 0, 1);     
-                    if (msg.Msg == WinInterop.WM_HOTKEY)
+                
+
+                if (msg.Msg == WinInterop.WM_HOTKEY)
                     {
                         var param = msg.WParam.ToInt32();
                         if (param == 0)
@@ -274,14 +274,16 @@ internal class Program
                         if (paused) message = "resume"; paused = false;
                         if (message == "pause") paused = true;    
                             
-                    }
+                        }
                         else if (param == 4)
                         {
                             message = "skipsplit";
                         }
+                    
                         Console.WriteLine(message);
                         client.Send(message);
-                        if(message == "startorsplit") stopwatch.Start();
+                        if (message == "startorsplit") stopwatch.Start();
+                    
                     }
                 
             }
@@ -303,7 +305,7 @@ static partial class WinInterop
     const int WM_KEYUP = 0x0101;
 
     public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
-    //public static event Action<Keys, bool> KeyAction;
+    
 
 
     public const int WM_HOTKEY = 0x312;
