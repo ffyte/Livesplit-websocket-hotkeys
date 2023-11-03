@@ -10,6 +10,8 @@
 	  <SelfContained>true</SelfContained>
 	  <RuntimeIdentifier>win-x86</RuntimeIdentifier>
 	  <PublishReadyToRun>true</PublishReadyToRun>
+  <DebugType>None</DebugType>
+<DebugSymbols>False</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>

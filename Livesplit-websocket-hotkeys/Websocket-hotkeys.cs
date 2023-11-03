@@ -206,11 +206,12 @@ internal class Program
         //main loop
 
         
-        Program.message = "startorsplit";
+        message = "startorsplit";
 
-        Stopwatch stopwatch = new Stopwatch();
-        
+        Stopwatch stopwatch = new ();
         WinInterop.Message msg = new();
+
+
         Console.WriteLine("ctrl+c to exit");
         while ( !abortpressed)
         {
@@ -221,17 +222,28 @@ internal class Program
                 Console.WriteLine("Failed to hook");
                 hook = WinInterop.SetWindowsHookEx(WH_KEYBOARD_LL, WinInterop.HookCallback, 0, 0);
             }*/
-            if (stopwatch.ElapsedMilliseconds >= 300) stopwatch.Stop();
-            if (Program.newmessage && !stopwatch.IsRunning)
+            if (newmessage && message == "startorsplit" && stopwatch.ElapsedMilliseconds < 300 && stopwatch.IsRunning)
             {
-
-                if (paused) { Program.message = "resume";paused=false;}
-                Console.WriteLine(Program.message);
-                client.Send(Program.message);
-                if(Program.message == "pause") { paused = true; }
-                Program.newmessage = false;
+                newmessage=false;
+                
+            }
+            
+            if (stopwatch.ElapsedMilliseconds >= 300)
+            {
                 stopwatch.Reset();
-                stopwatch.Start();
+            }
+            
+
+
+            if (newmessage && !stopwatch.IsRunning)
+            {
+                if (paused) { message = "resume";paused=false;}
+                Console.WriteLine(message);
+                client.Send(message);
+                if(message == "pause") { paused = true; }
+                newmessage = false;
+                
+                if (message== "startorsplit") stopwatch.Start();
                 }
             //Console.WriteLine(Program.newmessage);
             if (fallback)
@@ -269,7 +281,7 @@ internal class Program
                         }
                         Console.WriteLine(message);
                         client.Send(message);
-                        stopwatch.Start();
+                        if(message == "startorsplit") stopwatch.Start();
                     }
                 
             }
