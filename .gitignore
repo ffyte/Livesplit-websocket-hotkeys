@@ -3,5 +3,5 @@
 ################################################################################
 
 /.vs
-/bin
-/obj
+Livesplit-websocket-hotkeys/bin
+Livesplit-websocket-hotkeys/obj
