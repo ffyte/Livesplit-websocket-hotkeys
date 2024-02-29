@@ -12,7 +12,8 @@ internal class Program
     public static ConsoleKeyInfo pause = new();
     public static string message = "empty";
     public static bool newmessage = false;
-    
+ 
+
     private static void Main()
     {
         //startup and setting saving
@@ -20,6 +21,7 @@ internal class Program
         bool paused = false;
         string ip = "127.0.0.1:16835";
         IntPtr hook = IntPtr.Zero;
+        //WinInterop.LowLevelKeyboardProcMethod hookProcDelegate;
 
         //for blocking hotkeys
         bool fallback = false;
@@ -163,7 +165,9 @@ internal class Program
             WinInterop.RegisterHotKey(IntPtr.Zero, 4, (int)skipsplit.Modifiers + 0x4000, (uint)skipsplit.Key);
         } else
         {
-            hook = WinInterop.SetWindowsHookEx(13, WinInterop.HookCallback, IntPtr.Zero, 0);
+            WinInterop.LowLevelKeyboardProcMethod = WinInterop.HookCallback;
+            IntPtr hInstance = WinInterop.LoadLibrary("User32");
+            hook = WinInterop.SetWindowsHookEx(13, WinInterop.LowLevelKeyboardProcMethod, hInstance, 0);
             if (hook == IntPtr.Zero)
             {
                 Console.WriteLine("Failed to hook");
@@ -214,7 +218,7 @@ internal class Program
         Console.WriteLine("ctrl+c to exit");
         while ( !abortpressed)
         {
-            if (!fallback) { WinInterop.PeekMessageA(out msg, IntPtr.Zero, 0, 0, 1); }
+            if (!fallback) { WinInterop.PeekMessage(out msg, IntPtr.Zero, 0, 0, 1); }
             
             //prevent extra keypresses for non-blocking, don't know how to do it for blocking
             if ((newmessage && message == "startorsplit") && stopwatch.ElapsedMilliseconds < 300 && stopwatch.IsRunning)
@@ -305,7 +309,7 @@ static partial class WinInterop
     const int WM_KEYUP = 0x0101;
 
     public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
-    
+    public static LowLevelKeyboardProc LowLevelKeyboardProcMethod;
 
 
     public const int WM_HOTKEY = 0x312;
@@ -395,5 +399,7 @@ static partial class WinInterop
     public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll")]
-    public static extern bool PeekMessageA(out Message msg, IntPtr hWnd, uint filterMin, uint filterMax, uint remove);
+    public static extern bool PeekMessage(out Message msg, IntPtr hWnd, uint filterMin, uint filterMax, uint remove);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    public static extern IntPtr LoadLibrary(string lpFileName);
 }
