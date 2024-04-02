@@ -176,6 +176,11 @@ internal class Program
         }
         
         //Communication to server
+        Console.Write(ip);
+        if (string.IsNullOrEmpty(ip)) {
+            Console.WriteLine("Server not set, delete settings and try again.");
+            Environment.Exit(0);
+        }
         var url = new Uri("ws://" + ip + "/livesplit");
         using var client = new WebsocketClient(url);
 
